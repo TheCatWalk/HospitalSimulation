@@ -1,7 +1,9 @@
 import simpy
 from config import BATCH_INTERVAL
+from data_collector import DataCollector
 class ProcessMonitor:
     def __init__(self, env, queue, preparation, operation_theater, recovery):
+        self.data_collector = DataCollector()
         self.env = env
         self.queue = queue
         self.preparation = preparation
@@ -33,24 +35,35 @@ class ProcessMonitor:
 
 
     def handle_patient(self, patient):
-        print(f"Patient {patient.id} entering P at System time {self.env.now}")
+        # print(f"Patient {patient.id} entering P at System time {self.env.now}")
         with self.preparation.resource.request() as req:
             yield req
             yield self.env.timeout(patient.p_time)
-        print(f"Patient {patient.id} entering OT at System time {self.env.now}")
+        # print(f"Patient {patient.id} entering OT at System time {self.env.now}")
 
         with self.operation_theater.resource.request() as req:
             yield req
             yield self.env.timeout(patient.ot_time)
-        print(f"Patient {patient.id} entering R at System time {self.env.now}")
+        # print(f"Patient {patient.id} entering R at System time {self.env.now}")
 
         with self.recovery.resource.request() as req:
             yield req
             yield self.env.timeout(patient.r_time)
-        print(f"Patient {patient.id} completed at System time {self.env.now}")
+        # print(f"Patient {patient.id} completed at System time {self.env.now}")
 
         patient.end_time = self.env.now
         throughput_time = patient.end_time - patient.start_time
         facility_time = patient.p_time + patient.ot_time + patient.r_time
-        print(f"Total throughput time for Patient {patient.id}: {throughput_time}")
-        print(f"Total facility time for Patient {patient.id}: {facility_time}")
+        # Record queue length
+        self.data_collector.record_queue_length(len(self.queue.patients.items))
+
+        # Record operation blocking
+        is_recovery_busy = len(self.recovery.resource.users) == self.recovery.resource.capacity
+        self.data_collector.record_operation_blocking(is_recovery_busy)
+
+        # Record recovery room busy state
+        if is_recovery_busy:
+            self.data_collector.record_recovery_room_busy()
+
+        #print(f"Total throughput time for Patient {patient.id}: {throughput_time}")
+        #print(f"Total facility time for Patient {patient.id}: {facility_time}")
