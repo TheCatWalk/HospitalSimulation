@@ -1,28 +1,11 @@
-# import simpy
-# from queue import Queue
-# from process_monitor import ProcessMonitor
-# from resources import Preparation, OperationTheater, Recovery
-# from config import SIMULATION_TIME
-#
-# def hospital_simulation():
-#     env = simpy.Environment()
-#     queue = Queue(env)
-#     preparation = Preparation(env)
-#     operation_theater = OperationTheater(env)
-#     recovery = Recovery(env)
-#     process_monitor = ProcessMonitor(env, queue, preparation, operation_theater, recovery)
-#     env.run(until=SIMULATION_TIME)
-#
-# if __name__ == '__main__':
-#     hospital_simulation()
-
-import simpy
 import random
-from config import TIME_UNITS, WARM_UP_TIME, SYSTEM_CONFIGURATIONS, NUM_SAMPLES
+import simpy
+from config import TIME_UNITS, SYSTEM_CONFIGURATIONS, NUM_SAMPLES
 from queue import Queue
-from process_monitor import ProcessMonitor
 from resources import Preparation, OperationTheater, Recovery
-from statistical_analysis import calculate_mean, calculate_confidence_interval
+from process_monitor import ProcessMonitor
+from statistical_analysis import calculate_metrics
+
 
 def hospital_simulation(config):
     env = simpy.Environment()
@@ -32,34 +15,36 @@ def hospital_simulation(config):
     recovery = Recovery(env, config['R'])
     process_monitor = ProcessMonitor(env, queue, preparation, operation_theater, recovery)
 
-    env.run(until=TIME_UNITS)
+    env.run(until=TIME_UNITS)  # Run the simulation for the defined time units
+    return process_monitor.data_collector
 
-    # After simulation run, perform statistical analysis
-    queue_lengths, blocking_probs, recovery_busy_probs = process_monitor.data_collector.calculate_metrics()
-
-    # Statistical Analysis
-    mean_queue_length = calculate_mean(queue_lengths)
-    conf_interval_queue_length = calculate_confidence_interval(queue_lengths)
-
-    mean_blocking_prob = calculate_mean(blocking_probs)
-    conf_interval_blocking_prob = calculate_confidence_interval(blocking_probs)
-
-    mean_recovery_busy_prob = calculate_mean(recovery_busy_probs)
-    conf_interval_recovery_busy_prob = calculate_confidence_interval(recovery_busy_probs)
-
-    # Print Results
-    print(f"Mean Queue Length: {mean_queue_length}")
-    print(f"Confidence Interval for Queue Length: {conf_interval_queue_length}")
-
-    print(f"Mean Blocking Probability: {mean_blocking_prob}")
-    print(f"Confidence Interval for Blocking Probability: {conf_interval_blocking_prob}")
-
-    print(f"Mean Recovery Room Busy Probability: {mean_recovery_busy_prob}")
-    print(f"Confidence Interval for Recovery Room Busy Probability: {conf_interval_recovery_busy_prob}")
 
 if __name__ == '__main__':
     for config_name, config_values in SYSTEM_CONFIGURATIONS.items():
-        print(f"Running simulation for configuration: {config_name}")
+        print(f"\nSimulation results for configuration: {config_name}")
+        queue_lengths_all_runs = []
+        blocking_probs_all_runs = []
+        recovery_busy_probs_all_runs = []
+
         for sample_number in range(NUM_SAMPLES):
-            random.seed(sample_number)  # Set a consistent seed for each run
-            hospital_simulation(config_values)
+            random.seed(sample_number)
+            data_collector = hospital_simulation(config_values)
+            queue_lengths_all_runs.append(data_collector.queue_lengths if data_collector.queue_lengths else [0])
+
+            blocking_prob = (data_collector.operation_blocking_events /
+                             data_collector.total_operations if data_collector.total_operations > 0 else 0)
+            blocking_probs_all_runs.append(blocking_prob)
+
+            recovery_busy_prob = (data_collector.recovery_room_busy_counts /
+                                  data_collector.recovery_room_check_counts if data_collector.recovery_room_check_counts > 0 else 0)
+            recovery_busy_probs_all_runs.append(recovery_busy_prob)
+
+
+        # Calculate and print metrics
+        mean_queue_lengths, queue_sems, queue_margins, ci_queue_lengths = calculate_metrics([queue_lengths_all_runs])
+        mean_blocking_probs, blocking_sems, blocking_margins, ci_blocking_probs = calculate_metrics([blocking_probs_all_runs])
+        mean_recovery_busy_probs, recovery_busy_sems, recovery_busy_margins, ci_recovery_busy_probs = calculate_metrics([recovery_busy_probs_all_runs])
+
+        print(f"Mean Queue Lengths: {mean_queue_lengths}, SEM: {queue_sems}, MoE: {queue_margins}, CI: {ci_queue_lengths}")
+        print(f"Mean Blocking Probabilities: {mean_blocking_probs}, SEM: {blocking_sems}, MoE: {blocking_margins}, CI: {ci_blocking_probs}")
+        print(f"Mean Recovery Room Busy Probabilities: {mean_recovery_busy_probs}, SEM: {recovery_busy_sems}, MoE: {recovery_busy_margins}, CI: {ci_recovery_busy_probs}")

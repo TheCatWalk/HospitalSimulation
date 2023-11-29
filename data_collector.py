@@ -19,8 +19,4 @@ class DataCollector:
             self.recovery_room_busy_counts += 1
         self.recovery_room_check_counts += 1
 
-    def calculate_metrics(self):
-        avg_queue_length = sum(self.queue_lengths) / len(self.queue_lengths) if self.queue_lengths else 0
-        blocking_probability = (self.operation_blocking_events / self.total_operations) if self.total_operations else 0
-        recovery_room_busy_probability = (self.recovery_room_busy_counts / self.recovery_room_check_counts) if self.recovery_room_check_counts else 0
-        return self.queue_lengths, [blocking_probability] * len(self.queue_lengths), [recovery_room_busy_probability] * len(self.queue_lengths)
+    # Additional methods for calculating metrics will be added later
