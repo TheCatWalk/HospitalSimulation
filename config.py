@@ -1,17 +1,18 @@
-# Updated simulation parameters for Assignment 3
-TIME_UNITS = 1000  # Total simulation time for each run
-NUM_SAMPLES = 20   # Number of samples for each configuration
-WARM_UP_TIME = 150 # Warm-up time before data collection
+# config.py
+# Configuration settings for the simulation
 
-# Mean values for exponentially distributed times
-INTERARRIVAL_TIME_MEAN = 25  # Mean interarrival time
-PREPARATION_TIME_MEAN = 40   # Mean preparation time
-OPERATION_TIME_MEAN = 20     # Mean operation time
-RECOVERY_TIME_MEAN = 40      # Mean recovery time
+# Simulation Parameters
+TIME_UNITS = 1000     # Execution time of a single iteration
+NUM_SAMPLES = 20      # Number of times the simulation is repeated for each configuration
+WARM_UP_TIME = 1000    # Warm-up period after which data is collected
 
-# System configurations for the assignment
-SYSTEM_CONFIGURATIONS = {
-    '3p4r': {'P': 3, 'R': 4},
-    '3p5r': {'P': 3, 'R': 5},
-    '4p5r': {'P': 4, 'R': 5}
-}
+# System Configurations
+CONFIGURATIONS = ['3p4r', '3p5r', '4p5r']
+
+# Exponential Distribution Mean Values
+INTERARRIVAL_TIME_MEAN = 25
+PREPARATION_TIME_MEAN = 40
+OPERATION_TIME_MEAN = 20
+RECOVERY_TIME_MEAN = 40
+
+print("Configuration settings loaded.")

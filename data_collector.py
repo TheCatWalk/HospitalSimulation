@@ -1,22 +1,28 @@
+# data_collector.py
+
 class DataCollector:
     def __init__(self):
         self.queue_lengths = []
-        self.operation_blocking_events = 0
-        self.total_operations = 0
-        self.recovery_room_busy_counts = 0
-        self.recovery_room_check_counts = 0
+        self.blocking_events = 0
+        self.total_operations = 0  # Ensure this is incremented for each operation
 
     def record_queue_length(self, length):
         self.queue_lengths.append(length)
 
-    def record_operation_blocking(self, is_blocked):
-        if is_blocked:
-            self.operation_blocking_events += 1
+    def get_average_queue_length(self):
+        if not self.queue_lengths:
+            return 0
+        return sum(self.queue_lengths) / len(self.queue_lengths)
+
+    def record_blocking_event(self):
+        self.blocking_events += 1
+        print(f"Blocking event recorded. Total blocking events: {self.blocking_events}")
+
+    def increment_operations(self):
         self.total_operations += 1
+        print(f"Total operations: {self.total_operations}")  # For debugging
 
-    def record_recovery_room_busy(self, is_busy):
-        if is_busy:
-            self.recovery_room_busy_counts += 1
-        self.recovery_room_check_counts += 1
-
-    # Additional methods for calculating metrics will be added later
+    def calculate_blocking_probability(self):
+        if self.total_operations == 0:
+            return 0
+        return self.blocking_events / self.total_operations
