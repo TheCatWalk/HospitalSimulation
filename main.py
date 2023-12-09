@@ -53,8 +53,8 @@ def format_dataframe(df, headers):
 def main():
     print("Starting simulation...")
     simulation_results = {}
-    seed = random.seed()
-    print("Seed is:", random.random())
+    seed = random.random()
+    print("Seed is:", seed)
 
 
 # Dataframes to store the results
