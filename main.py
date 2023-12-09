@@ -1,6 +1,7 @@
 # main.py
 import simpy
 import config
+from config import NUM_SAMPLES
 from patient import patient_arrival_process
 from resources import Hospital
 from data_collector import DataCollector
@@ -8,10 +9,11 @@ from process_monitor import monitor_preparation_queue, monitor_blocking_probabil
 import statistical_analysis as sa
 import pandas as pd
 import random
+import os
 
 
-
-def run_simulation(configuration, env):
+def run_simulation(configuration, env, seed):
+    random.seed(seed)
     data_collector = DataCollector()
     hospital = Hospital(env, configuration, data_collector)
     env.process(patient_arrival_process(env, hospital))
@@ -20,13 +22,13 @@ def run_simulation(configuration, env):
     env.run(until=config.TIME_UNITS)
     return data_collector.get_average_queue_length(), data_collector.calculate_blocking_probability()
 
-def multiple_runs(configuration):
+def multiple_runs(configuration, seed):
     queue_lengths = []
     blocking_probabilities = []
 
     for _ in range(config.NUM_SAMPLES):
         env = simpy.Environment()
-        avg_queue_length, blocking_probability = run_simulation(configuration, env)
+        avg_queue_length, blocking_probability = run_simulation(configuration, env, seed)
         queue_lengths.append(avg_queue_length)
         blocking_probabilities.append(blocking_probability)
 
@@ -51,13 +53,16 @@ def format_dataframe(df, headers):
 def main():
     print("Starting simulation...")
     simulation_results = {}
+    seed = random.seed()
+    print("Seed is:", random.random())
 
-    # Dataframes to store the results
+
+# Dataframes to store the results
     ql_results = pd.DataFrame(columns=['Configuration', 'QL mean x̄', 'QL-Standard Deviation σ', 'QL-Confidence interval (95%)'])
     bp_results = pd.DataFrame(columns=['Configuration', 'BP mean x̄', 'BP-Standard Deviation σ', 'BP-Confidence interval (95%)'])
 
     for configuration in config.CONFIGURATIONS:
-        queue_lengths, blocking_probabilities = multiple_runs(configuration)
+        queue_lengths, blocking_probabilities = multiple_runs(configuration, seed)
 
         # Calculate mean, standard deviation, and confidence intervals
         mean_ql = sa.calculate_mean(queue_lengths)
