@@ -16,11 +16,11 @@ class DataCollector:
 
     def record_blocking_event(self):
         self.blocking_events += 1
-        print(f"Blocking event recorded. Total blocking events: {self.blocking_events}")
+        # print(f"Blocking event recorded. Total blocking events: {self.blocking_events}")
 
     def increment_operations(self):
         self.total_operations += 1
-        print(f"Total operations: {self.total_operations}")  # For debugging
+        # print(f"Total operations: {self.total_operations}")  # For debugging
 
     def calculate_blocking_probability(self):
         if self.total_operations == 0:

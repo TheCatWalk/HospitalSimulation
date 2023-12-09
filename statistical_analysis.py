@@ -1,35 +1,44 @@
+# statistical_analysis.py
 import numpy as np
-from scipy import stats
-
-
+import config
 def calculate_mean(data):
     return np.mean(data)
 
+def calculate_std(data):
+    return np.sqrt(np.sum((data - np.mean(data)) ** 2) / len(data))
 
-def calculate_sem(data):
-    return stats.sem(data)
-
-
-def calculate_confidence_interval(data, confidence=0.95):
+def calculate_confidence_interval(data):
     mean = calculate_mean(data)
-    sem = calculate_sem(data)
-    margin = sem * stats.t.ppf((1 + confidence) / 2, len(data) - 1)
-    return mean - margin, mean + margin
+    std = calculate_std(data)
+    n = len(data)
+    z = 1.69  # z-value for 95% confidence interval
+    margin_of_error = z * (std / np.sqrt(n))
+    return mean - margin_of_error, mean + margin_of_error
 
+def calculate_difference_ci(mean1, std1, n1, mean2, std2, n2):
+    mean_diff = mean1 - mean2
+    std_diff = np.sqrt(std1**2 / n1 + std2**2 / n2)
+    z = 1.69  # z-value for 95% confidence interval
+    margin_of_error = z * std_diff
+    return mean_diff - margin_of_error, mean_diff + margin_of_error
 
-def calculate_metrics(data_collections):
-    means = []
-    sems = []
-    margins = []
-    confidence_intervals = []
-    for data in data_collections:
-        mean = calculate_mean(data)
-        sem = calculate_sem(data)
-        conf_interval = calculate_confidence_interval(data)
-        margin = sem * stats.t.ppf((1 + 0.95) / 2, len(data) - 1)
+def pairwise_comparison(results):
+    comparison_results = []
+    configurations = list(results.keys())
 
-        means.append(mean)
-        sems.append(sem)
-        margins.append(margin)
-        confidence_intervals.append(conf_interval)
-    return means, sems, margins, confidence_intervals
+    for i in range(len(configurations) - 1):
+        for j in range(i + 1, len(configurations)):
+            config_1 = configurations[i]
+            config_2 = configurations[j]
+
+            # Calculate differences and confidence intervals
+            diff_ql_mean = results[config_1]['mean_ql'] - results[config_2]['mean_ql']
+            diff_bp_mean = results[config_1]['mean_bp'] - results[config_2]['mean_bp']
+            ci_ql_diff = calculate_difference_ci(results[config_1]['mean_ql'], results[config_1]['std_ql'], config.NUM_SAMPLES,
+                                                 results[config_2]['mean_ql'], results[config_2]['std_ql'], config.NUM_SAMPLES)
+            ci_bp_diff = calculate_difference_ci(results[config_1]['mean_bp'], results[config_1]['std_bp'], config.NUM_SAMPLES,
+                                                 results[config_2]['mean_bp'], results[config_2]['std_bp'], config.NUM_SAMPLES)
+
+            comparison_results.append((f"{config_1} & {config_2}", diff_ql_mean, ci_ql_diff, diff_bp_mean, ci_bp_diff))
+
+    return comparison_results
