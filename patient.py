@@ -2,7 +2,14 @@
 import simpy
 import random
 import config
+from config import DISTRIBUTION_TYPE, UNIFORM_LOWER_LIMIT, UNIFORM_UPPER_LIMIT
 from resources import Hospital
+
+def get_time_based_on_distribution(mean):
+    if DISTRIBUTION_TYPE == 'uniform':
+        return random.uniform(UNIFORM_LOWER_LIMIT, UNIFORM_UPPER_LIMIT)
+    else:  # Default to exponential
+        return random.expovariate(1.0 / mean)
 
 class Patient:
     def __init__(self, env, id, hospital):
@@ -16,7 +23,7 @@ class Patient:
         with self.hospital.preparation_rooms.request() as prep_req:
             yield prep_req
             # print(f"Patient {self.id} enters preparation at time {self.env.now}.")
-            yield self.env.timeout(random.expovariate(1.0 / config.PREPARATION_TIME_MEAN))
+            yield self.env.timeout(get_time_based_on_distribution(config.PREPARATION_TIME_MEAN))
             # print(f"Patient {self.id} leaves preparation at time {self.env.now}.")
 
         # Operation Process
@@ -37,12 +44,12 @@ class Patient:
         with self.hospital.recovery_rooms.request() as rec_req:
             yield rec_req
             # print(f"Patient {self.id} enters recovery at time {self.env.now}.")
-            yield self.env.timeout(random.expovariate(1.0 / config.RECOVERY_TIME_MEAN))
+            yield self.env.timeout(get_time_based_on_distribution(config.RECOVERY_TIME_MEAN))
             # print(f"Patient {self.id} leaves recovery at time {self.env.now}.")
 
 def patient_arrival_process(env, hospital):
     patient_id = 1
     while True:
-        yield env.timeout(random.expovariate(1.0 / config.INTERARRIVAL_TIME_MEAN))
+        yield env.timeout(get_time_based_on_distribution(config.INTERARRIVAL_TIME_MEAN))
         Patient(env, patient_id, hospital)
         patient_id += 1

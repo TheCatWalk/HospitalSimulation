@@ -3,6 +3,7 @@
 class DataCollector:
     def __init__(self):
         self.queue_lengths = []
+        self.time_series_data = []  # New attribute for time series data
         self.blocking_events = 0
         self.total_operations = 0  # Ensure this is incremented for each operation
 
@@ -26,3 +27,6 @@ class DataCollector:
         if self.total_operations == 0:
             return 0
         return self.blocking_events / self.total_operations
+
+    def record_time_series_data(self, time, length):
+        self.time_series_data.append((time, length))

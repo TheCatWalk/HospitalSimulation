@@ -1,16 +1,21 @@
 # main.py
 import simpy
 import config
+import data_collector
 from config import NUM_SAMPLES
 from patient import patient_arrival_process
 from resources import Hospital
 from data_collector import DataCollector
 from process_monitor import monitor_preparation_queue, monitor_blocking_probability
 import statistical_analysis as sa
+from statistical_analysis import calculate_serial_correlation
 import pandas as pd
 import random
 import os
+import matplotlib.pyplot as plt
+from datetime import datetime
 
+current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def run_simulation(configuration, env, seed):
     random.seed(seed)
@@ -25,14 +30,23 @@ def run_simulation(configuration, env, seed):
 def multiple_runs(configuration, seed):
     queue_lengths = []
     blocking_probabilities = []
+    data_collectors = []  # Store DataCollector instances
 
     for _ in range(config.NUM_SAMPLES):
         env = simpy.Environment()
-        avg_queue_length, blocking_probability = run_simulation(configuration, env, seed)
+        data_collector = DataCollector()
+        hospital = Hospital(env, configuration, data_collector)
+        env.process(patient_arrival_process(env, hospital))
+        env.process(monitor_preparation_queue(env, hospital, data_collector))
+        env.process(monitor_blocking_probability(env, hospital, data_collector))
+        env.run(until=config.TIME_UNITS)
+        avg_queue_length, blocking_probability = data_collector.get_average_queue_length(), data_collector.calculate_blocking_probability()
         queue_lengths.append(avg_queue_length)
         blocking_probabilities.append(blocking_probability)
+        data_collectors.append(data_collector)  # Append the instance
 
-    return queue_lengths, blocking_probabilities
+    queue_length_series = [[length for _, length in dc.time_series_data] for dc in data_collectors]
+    return queue_lengths, blocking_probabilities, queue_length_series
 
 def format_dataframe(df, headers):
     # Define a formatter function for numerical values
@@ -50,19 +64,46 @@ def format_dataframe(df, headers):
 
     return formatted_str
 
+def plot_autocorrelation(data, max_lag=20):
+    autocorrelations = [calculate_serial_correlation(data, lag) for lag in range(1, max_lag + 1)]
+    plt.stem(range(1, max_lag + 1), autocorrelations)
+    plt.xlabel('Lag')
+    plt.ylabel('Autocorrelation')
+    plt.title('Autocorrelation Function')
+
 def main():
     print("Starting simulation...")
     simulation_results = {}
     seed = random.random()
     print("Seed is:", seed)
 
-
-# Dataframes to store the results
+    # Dataframes to store the results
     ql_results = pd.DataFrame(columns=['Configuration', 'QL mean x̄', 'QL-Standard Deviation σ', 'QL-Confidence interval (95%)'])
     bp_results = pd.DataFrame(columns=['Configuration', 'BP mean x̄', 'BP-Standard Deviation σ', 'BP-Confidence interval (95%)'])
 
-    for configuration in config.CONFIGURATIONS:
-        queue_lengths, blocking_probabilities = multiple_runs(configuration, seed)
+    for config_name, config_values in config.EXPERIMENT_CONFIGS.items():
+        # Debugging print statement
+        print(f"\nRunning simulation for configuration: {config_name}")
+        # Extract configuration parameters
+        interarrival = config_values['Interarrival']
+        preparation = config_values['Preparation']
+        recovery = config_values['Recovery']
+        prep_units = config_values['PrepUnits']
+        recovery_units = config_values['RecoveryUnits']
+
+        # Construct configuration string (e.g., '4p5r')
+        configuration = f"{prep_units}p{recovery_units}r"
+
+        # Ensure the system components in your simulation are set according to these parameters
+        # e.g., set the distribution type and number of units in patient.py and resources.py as per these values
+
+        # Create directories for each configuration
+        config_dir = f"results/{config_name}"
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+
+        # run simulation
+        queue_lengths, blocking_probabilities, all_series = multiple_runs(configuration, seed)
 
         # Calculate mean, standard deviation, and confidence intervals
         mean_ql = sa.calculate_mean(queue_lengths)
@@ -91,6 +132,21 @@ def main():
             'std_bp': std_bp,
             # ... [store other statistics if necessary] ...
         }
+
+        # UNCOMMENT
+        # print(f"\nTime Series Data Sample for {configuration}:")
+        # for dc in data_collectors:  # Loop through each DataCollector instance
+        #     print(dc.time_series_data[:10])
+
+        # UNCOMMENT
+        # Save plots and additional data
+        for i, series in enumerate(all_series):
+            plt.figure()
+            plot_autocorrelation(series, max_lag=20)
+            plt.savefig(f'{config_dir}/autocorrelation_{i}_{current_datetime}.png')
+            plt.close()
+        pd.DataFrame(all_series).to_csv(f'{config_dir}/time_series_data.csv')
+
 
     ql_headers = ['Configuration', 'QL mean x̄', 'QL-Standard Deviation σ', 'QL-Confidence interval (95%)']
     bp_headers = ['Configuration', 'BP mean x̄', 'BP-Standard Deviation σ', 'BP-Confidence interval (95%)']

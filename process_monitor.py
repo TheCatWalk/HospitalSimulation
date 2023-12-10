@@ -7,6 +7,8 @@ def monitor_preparation_queue(env, hospital, data_collector):
         yield env.timeout(1)  # Check queue length at regular intervals
         queue_length = len(hospital.preparation_rooms.queue)
         data_collector.record_queue_length(queue_length)
+        current_time = env.now
+        data_collector.record_time_series_data(current_time, queue_length)  # Record time series data
 
 def monitor_blocking_probability(env, hospital, data_collector):
     while True:

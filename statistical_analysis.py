@@ -42,3 +42,14 @@ def pairwise_comparison(results):
             comparison_results.append((f"{config_1} & {config_2}", diff_ql_mean, ci_ql_diff, diff_bp_mean, ci_bp_diff))
 
     return comparison_results
+
+def calculate_serial_correlation(data, lag=1):
+    n = len(data)
+    mean = np.mean(data)
+    total = 0
+    denom = 0
+    for i in range(n - lag):
+        total += (data[i] - mean) * (data[i + lag] - mean)
+    for i in range(n):
+        denom += (data[i] - mean) ** 2
+    return total / denom
