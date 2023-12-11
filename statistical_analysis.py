@@ -53,3 +53,11 @@ def calculate_serial_correlation(data, lag=1):
     for i in range(n):
         denom += (data[i] - mean) ** 2
     return total / denom
+
+def compare_autocorrelation(series1, series2, max_lag=20):
+    comparison_results = []
+    for lag in range(1, max_lag + 1):
+        ac1 = calculate_serial_correlation(series1, lag)
+        ac2 = calculate_serial_correlation(series2, lag)
+        comparison_results.append((lag, ac1, ac2, abs(ac1 - ac2)))
+    return comparison_results
