@@ -9,6 +9,9 @@ by Oleksandra Ivanova, Shaswato Sarker and Tasnim Zahan
 Link to the Google doc: https://docs.google.com/document/d/1Ewf4hhGvLPjK3T2yMOuWm8lZCxLWDneQ/edit?usp=sharing&ouid=118441199629824763446&rtpof=true&sd=true
 (Please, better refer to the Google doc, there you can find visual materials (comparison tables, etc.)
 
+Workshop 4 - https://docs.google.com/document/d/1Xz27gQ0nW48x5k1KkgWWwUkXF2SUt9Whcu_axImerBU/edit?usp=sharing
+
+
 Experiment Description
 Consider the situation of the previous exercises. That is: P preparation rooms, one operating theatre, and R recovery rooms with no intermediate buffer capacity between them. Assume still only one patient stream with exponentially distributed arrival and service times (means: interarrival time 25, preparation time 40, operation time 20, recovery time 40). (It is easy to infer that ideally, we should have 80% utilization of the operation room and on average less than two patients in preparation and recovery). For simplicity, we assume continuous operation. We shall monitor the building up of a queue before preparation, the idle capacity of the preparation, and the rate of blocking of operations.
 Run 20 independent samples of 1000 time units of the system in equilibrium (some warm-up will be needed before monitoring the results). Do this for three different configurations (3 preparation rooms, 4 recoveries: 3p 5r, 4p 5r). (It may be wise to foresee the needs of all the problems at once to not have to rerun samples).
