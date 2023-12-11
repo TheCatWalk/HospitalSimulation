@@ -15,10 +15,6 @@ PREPARATION_TIME_MEAN = 40
 OPERATION_TIME_MEAN = 20
 RECOVERY_TIME_MEAN = 40
 
-
-# Distribution Type ('exponential' or 'uniform')
-DISTRIBUTION_TYPE = 'exponential'  # Change to 'uniform' for uniform distribution
-
 # Uniform Distribution Limits (used if DISTRIBUTION_TYPE is 'uniform')
 UNIFORM_LOWER_LIMIT = 15
 UNIFORM_UPPER_LIMIT = 35

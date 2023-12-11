@@ -11,6 +11,11 @@ import random
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
+import sys
+import logging
+import subprocess
+
+
 
 current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -24,7 +29,7 @@ def run_simulation(configuration, env, seed):
     env.run(until=config.TIME_UNITS)
     return data_collector.get_average_queue_length(), data_collector.calculate_blocking_probability()
 
-def multiple_runs(configuration, seed):
+def multiple_runs(configuration, seed, config_values):
     queue_lengths = []
     blocking_probabilities = []
     data_collectors = []
@@ -33,7 +38,7 @@ def multiple_runs(configuration, seed):
         env = simpy.Environment()
         data_collector = DataCollector()
         hospital = Hospital(env, configuration, data_collector)
-        env.process(patient_arrival_process(env, hospital))
+        env.process(patient_arrival_process(env, hospital, config_values))
         env.process(monitor_preparation_queue(env, hospital, data_collector))
         env.process(monitor_blocking_probability(env, hospital, data_collector))
         env.run(until=config.TIME_UNITS)
@@ -88,7 +93,7 @@ def main():
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
-        queue_lengths, blocking_probabilities, all_series = multiple_runs(configuration, seed)
+        queue_lengths, blocking_probabilities, all_series = multiple_runs(configuration, seed, config_values)
 
 
         mean_ql = sa.calculate_mean(queue_lengths)
@@ -155,6 +160,18 @@ def main():
 
     # Save bp_results to a CSV file inside the 'qlbpOutput' folder with the current date and time
     bp_results.to_csv(os.path.join(output_folder, f'blocking_probability_results_{current_datetime}.csv'), index=False)
+
+    # Redirect both sys.stdout and sys.stderr to a text file with the current date and time appended to its name
+    log_filename = os.path.join('qlbpOutput', f'terminal_output_{current_datetime}.txt')
+    # Configure logging to save output to a file
+    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    # Redirect stdout and stderr to the logging module
+    sys.stdout = sys.stderr = logging
+
+    # After you're done, restore stdout to its original state
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
 
 
     print("\nQueue Length Results:")

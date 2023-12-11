@@ -1,55 +1,53 @@
-# patient.py
 import simpy
 import random
 import config
-from config import DISTRIBUTION_TYPE, UNIFORM_LOWER_LIMIT, UNIFORM_UPPER_LIMIT
 from resources import Hospital
 
-def get_time_based_on_distribution(mean):
-    if DISTRIBUTION_TYPE == 'uniform':
-        return random.uniform(UNIFORM_LOWER_LIMIT, UNIFORM_UPPER_LIMIT)
-    else:  # Default to exponential
-        return random.expovariate(1.0 / mean)
-
 class Patient:
-    def __init__(self, env, id, hospital):
+    def __init__(self, env, id, hospital, config_values):
         self.env = env
         self.id = id
         self.hospital = hospital
+        self.config_values = config_values  # Store the configuration values
         env.process(self.process())
 
+    def get_time_based_on_distribution(self, mean, dist_type):
+        if dist_type == 'Unif':
+            return random.uniform(config.UNIFORM_LOWER_LIMIT, config.UNIFORM_UPPER_LIMIT)
+        else:  # Default to exponential
+            return random.expovariate(1.0 / mean)
+
     def process(self):
-        # print(f"Patient {self.id} arrives at time {self.env.now}.")
         with self.hospital.preparation_rooms.request() as prep_req:
             yield prep_req
-            # print(f"Patient {self.id} enters preparation at time {self.env.now}.")
-            yield self.env.timeout(get_time_based_on_distribution(config.PREPARATION_TIME_MEAN))
-            # print(f"Patient {self.id} leaves preparation at time {self.env.now}.")
+            prep_time = self.get_time_based_on_distribution(config.PREPARATION_TIME_MEAN, self.config_values['Preparation'])
+            yield self.env.timeout(prep_time)
 
-        # Operation Process
         with self.hospital.operating_theatre.request() as op_req:
             yield op_req
-            self.hospital.data_collector.increment_operations()  # Increment operation count here
-            # print(f"Patient {self.id} enters operation at time {self.env.now}.")
-            yield self.env.timeout(random.expovariate(1.0 / config.OPERATION_TIME_MEAN))
-            # print(f"Patient {self.id} finishes operation at time {self.env.now}.")
+            self.hospital.data_collector.increment_operations()
+            op_time = random.expovariate(1.0 / config.OPERATION_TIME_MEAN)  # Assuming operation time is always exponential
+            yield self.env.timeout(op_time)
 
-            # Check for blocking
             if self.hospital.recovery_rooms.count == self.hospital.recovery_rooms.capacity:
                 self.hospital.data_collector.record_blocking_event()
-                # print(f"Blocking event recorded for Patient {self.id} at time {self.env.now}.")
 
-
-                # Recovery Process
         with self.hospital.recovery_rooms.request() as rec_req:
             yield rec_req
-            # print(f"Patient {self.id} enters recovery at time {self.env.now}.")
-            yield self.env.timeout(get_time_based_on_distribution(config.RECOVERY_TIME_MEAN))
-            # print(f"Patient {self.id} leaves recovery at time {self.env.now}.")
+            rec_time = self.get_time_based_on_distribution(config.RECOVERY_TIME_MEAN, self.config_values['Recovery'])
+            yield self.env.timeout(rec_time)
 
-def patient_arrival_process(env, hospital):
+def patient_arrival_process(env, hospital, config_values):
     patient_id = 1
     while True:
-        yield env.timeout(get_time_based_on_distribution(config.INTERARRIVAL_TIME_MEAN))
-        Patient(env, patient_id, hospital)
+        interarrival_time = get_time_based_on_distribution(config.INTERARRIVAL_TIME_MEAN, config_values['Interarrival'])
+        yield env.timeout(interarrival_time)
+        Patient(env, patient_id, hospital, config_values)
         patient_id += 1
+
+# Add a helper function to get time based on distribution
+def get_time_based_on_distribution(mean, dist_type):
+    if dist_type == 'Unif':
+        return random.uniform(config.UNIFORM_LOWER_LIMIT, config.UNIFORM_UPPER_LIMIT)
+    else:  # Default to exponential
+        return random.expovariate(1.0 / mean)
