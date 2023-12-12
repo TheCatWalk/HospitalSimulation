@@ -10,7 +10,7 @@ WARM_UP_TIME = 1000    # Warm-up period after which data is collected
 CONFIGURATIONS = ['3p4r', '3p5r', '4p5r']
 
 # Exponential Distribution Mean Values
-INTERARRIVAL_TIME_MEAN = 25
+INTERARRIVAL_TIME_MEAN = 5
 PREPARATION_TIME_MEAN = 40
 OPERATION_TIME_MEAN = 20
 RECOVERY_TIME_MEAN = 40

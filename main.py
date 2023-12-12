@@ -122,16 +122,33 @@ def main():
         }
 
         autocorrelations_list = []
+
+        # List to store individual series autocorrelations (for plots and detailed analysis)
+        detailed_autocorrelations_list = []
+
+        # List to store autocorrelations at lag 1 for each series (for average calculation)
+        avg_autocorrelation_list = []
+
+
         for series_index, series in enumerate(all_series):
             autocorrelations = [calculate_serial_correlation(series, lag) for lag in range(1, 21)]
-            autocorrelations_list.append(autocorrelations)
+
+            # Calculate average autocorrelation for the plot title
+            avg_autocorrelation = sum(autocorrelations) / len(autocorrelations)
+
+            # Plotting
             plt.figure()
             plt.stem(range(1, 21), autocorrelations)
             plt.xlabel('Lag')
             plt.ylabel('Autocorrelation')
-            plt.title(f'Autocorrelation Function for {config_name} - Series {series_index}')
+            plt.title(f'Autocorrelation for {config_name} - Series {series_index} (Avg. Factor: {avg_autocorrelation:.4f})')
             plt.savefig(f'{config_dir}/autocorrelation_series{series_index}_{current_datetime}.png')
             plt.close()
+
+            # Saving autocorrelation data to CSV
+            autocorr_df = pd.DataFrame({'Lag': range(1, 21), 'Autocorrelation': autocorrelations})
+            autocorr_df.to_csv(f'{config_dir}/autocorrelation_data_series{series_index}_{config_name}_{current_datetime}.csv', index=False)
+
 
 
         # # Diagnostic print to check the time series data
@@ -161,17 +178,17 @@ def main():
     # Save bp_results to a CSV file inside the 'qlbpOutput' folder with the current date and time
     bp_results.to_csv(os.path.join(output_folder, f'blocking_probability_results_{current_datetime}.csv'), index=False)
 
-    # Redirect both sys.stdout and sys.stderr to a text file with the current date and time appended to its name
-    log_filename = os.path.join('qlbpOutput', f'terminal_output_{current_datetime}.txt')
-    # Configure logging to save output to a file
-    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-    # Redirect stdout and stderr to the logging module
-    sys.stdout = sys.stderr = logging
-
-    # After you're done, restore stdout to its original state
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__
+    # # Redirect both sys.stdout and sys.stderr to a text file with the current date and time appended to its name
+    # log_filename = os.path.join('qlbpOutput', f'terminal_output_{current_datetime}.txt')
+    # # Configure logging to save output to a file
+    # logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    #
+    # # Redirect stdout and stderr to the logging module
+    # sys.stdout = sys.stderr = logging
+    #
+    # # After you're done, restore stdout to its original state
+    # sys.stdout = sys.__stdout__
+    # sys.stderr = sys.__stderr__
 
 
     print("\nQueue Length Results:")
